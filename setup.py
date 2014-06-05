@@ -5,15 +5,15 @@
 from setuptools import setup
 
 install_requires = [
-    'minion.plugin_service'
+    'minion-backend'
 ]
 
 setup(name="minion.arachni_plugin",
-      version="0.1",
+      version="0.2",
       description="Arachni Plugin for Minion",
-      url="https://github.com/pbkracker/minion-arachni-plugin/",
-      author="Patrick Kelley",
-      author_email="patrick.kelley@hackerdojo.com",
+      url="https://github.com/Wawki/minion-arachni-plugin/",
+      author="Frederic Guegan",
+      author_email="guegan.frederic@gmail.com",
       packages=['minion', 'minion.plugins'],
       namespace_packages=['minion', 'minion.plugins'],
       include_package_data=True,
