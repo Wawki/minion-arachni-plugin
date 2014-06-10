@@ -1,6 +1,8 @@
 Minion Arachni Plugin
 ===================
 
+[![Build Status](https://drone.io/github.com/Wawki/minion-arachni-plugin/status.png)](https://drone.io/github.com/Wawki/minion-arachni-plugin/latest)
+
 This is a plugin for Minion that executes the Arachni tool. It assumes Arachni is installed on your system and that is is on the system PATH.  The arachni_rpcd process must be running. It currently relies on the experimental branch of Arachni.
 
 Forked from the current Arachni plugin : https://github.com/pbkracker/minion-arachni-plugin
