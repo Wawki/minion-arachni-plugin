@@ -14,6 +14,8 @@ opt_parser = OptionParser.new do |opt|
   options["audit_forms"] = true
   options["audit_links"] = true
   options["audit_cookies"] = true
+  options["server_address"] = "127.0.0.1"
+  options["server_port"] = 7331
 
   opt.separator "Supported options:"
 
@@ -186,6 +188,11 @@ opt_parser = OptionParser.new do |opt|
     options["url"] = url
   end
 
+  # RPC Server
+  opt.on("--server server:port", "Dispatcher server to use.") do |server|
+    options["server"] = server
+  end
+
   opt.on_tail('-h', '--help', "Output this." ) do
     puts opt
     exit
@@ -215,9 +222,10 @@ static_cookies = [
     }
 ]
 
+host, port = options["server"].split( ':' )
 dispatcher = Arachni::RPC::Pure::Client.new(
-    host: 'localhost',
-    port:  7331
+    host: host,
+    port: port
 )
 
 instance_info = dispatcher.call( 'dispatcher.dispatch' )

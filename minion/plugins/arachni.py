@@ -18,6 +18,7 @@ class ArachniPlugin(ExternalProcessPlugin):
 
     PLUGIN_NAME = "Arachni"
     PLUGIN_VERSION = "0.1"
+    PLUGIN_WEIGHT = "heavy"
 
     ARACHNI_NAME = os.path.dirname(os.path.realpath(__file__)) + "/arachni_runner.rb"
     ARACHNI_ARGS = []
@@ -30,7 +31,7 @@ class ArachniPlugin(ExternalProcessPlugin):
     def do_start(self):
         self.output = ""
         self.stderr = ""
-        #url = urlparse(self.configuration['target'])
+
         self.report_progress(10, 'Starting Arachni')
 
         # Pull some variables from the plan configuration
@@ -38,6 +39,12 @@ class ArachniPlugin(ExternalProcessPlugin):
         if 'target' in self.configuration:
             self.ARACHNI_ARGS.append("--url")
             self.ARACHNI_ARGS.append(self.configuration['target'])
+
+        if not 'server' in self.configuration:
+            raise Exception("Configuration for the dispatcher is missing")
+        else:
+            self.ARACHNI_ARGS.append("--server")
+            self.ARACHNI_ARGS.append(self.configuration['server'])
 
         # General
         if 'only_positives' in self.configuration and self.configuration['only_positives']:
@@ -168,7 +175,6 @@ class ArachniPlugin(ExternalProcessPlugin):
              self.ARACHNI_ARGS.append("--plugin")
              self.ARACHNI_ARGS.append(self.configuration['plugin'])
 
-        self.report_progress(22, str(self.ARACHNI_ARGS))
         self.spawn(self.ARACHNI_NAME, self.ARACHNI_ARGS)
 
     def do_stop(self):
@@ -268,6 +274,10 @@ class ArachniPlugin(ExternalProcessPlugin):
         # `initialize': Connection refused - connect(2) (Arachni::RPC::Exceptions::ConnectionError)
 
         self.stderr += data
+
+        connection_error_regex = r".*Connection\srefused\s-\sconnect\(2\)\s\(Arachni::RPC::Exceptions::ConnectionError\)"
+        if re.match(connection_error_regex, self.stderr):
+            raise Exception("ConnectionError - You may be need to launch arachni_rpcd")
         #self.report_errors([str(data)])
         #self.report_finish("Encountered An Error; dying")
         #self.report_issues([{"Summary": data}])
