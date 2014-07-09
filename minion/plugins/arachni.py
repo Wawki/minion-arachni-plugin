@@ -6,6 +6,7 @@
 from minion.plugins.base import ExternalProcessPlugin
 import os
 import re
+import uuid
 
 
 def _minion_severity(severity):
@@ -31,6 +32,7 @@ class ArachniPlugin(ExternalProcessPlugin):
     def do_start(self):
         self.output = ""
         self.stderr = ""
+        self.output_id = str(uuid.uuid4())
 
         self.report_progress(10, 'Starting Arachni')
 
@@ -287,6 +289,17 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.report_finish("STOPPED")
         elif status == 0:
             self._parse_output(self.output)
+
+            stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id
+            stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id
+            with open(stdout_log, 'w') as f:
+                f.write(self.output)
+            with open(stderr_log, 'w') as f:
+                f.write(self.stderr)
+
+            self.report_artifacts("Arachni Output", [{"type": "txt", "path": stdout_log},
+                                                     {"type": "txt", "path": stderr_log}])
+
             self.report_finish()
         else:
             self.report_finish("FAILED")
