@@ -14,8 +14,7 @@ opt_parser = OptionParser.new do |opt|
   options["audit_forms"] = true
   options["audit_links"] = true
   options["audit_cookies"] = true
-  options["server_address"] = "127.0.0.1"
-  options["server_port"] = 7331
+  options["server"] = "127.0.0.1:7331"
 
   opt.separator "Supported options:"
 
