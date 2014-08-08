@@ -227,7 +227,11 @@ dispatcher = Arachni::RPC::Pure::Client.new(
     port: port
 )
 
-instance_info = dispatcher.call( 'dispatcher.dispatch' )
+begin
+    instance_info = dispatcher.call( 'dispatcher.dispatch' )
+rescue Arachni::RPC::Exceptions::ConnectionError => conn_e
+    abort conn_e.to_s
+end
 
 host, port = instance_info['url'].split( ':' )
 instance = Arachni::RPC::Pure::Client.new(
@@ -251,9 +255,11 @@ end
 
 
 # Todo : cookies
-service.scan options
-
-
+begin
+    service.scan options
+rescue Arachni::RPC::Exceptions::InvalidToken => inv_e
+    abort inv_e.to_s
+end
 
 while sleep 1
     progress = service.progress( with: :issues )

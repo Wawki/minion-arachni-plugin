@@ -277,9 +277,13 @@ class ArachniPlugin(ExternalProcessPlugin):
 
         self.stderr += data
 
-        connection_error_regex = r".*Connection\srefused\s-\sconnect\(2\)\s\(Arachni::RPC::Exceptions::ConnectionError\)"
-        if re.match(connection_error_regex, self.stderr):
+        connection_error_regex = r".*Connection\srefused\s-\sconnect\(2\)"
+        if re.match(connection_error_regex, data):
             raise Exception("ConnectionError - You may be need to launch arachni_rpcd")
+
+        inv_token_regex = r".*Token missing or invalid"
+        if re.match(inv_token_regex, data):
+            raise Exception("InvalidToken - An error occurred on the rpc server side")
         #self.report_errors([str(data)])
         #self.report_finish("Encountered An Error; dying")
         #self.report_issues([{"Summary": data}])
@@ -289,17 +293,19 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.report_finish("STOPPED")
         elif status == 0:
             self._parse_output(self.output)
-
-            stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id
-            stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id
-            with open(stdout_log, 'w') as f:
-                f.write(self.output)
-            with open(stderr_log, 'w') as f:
-                f.write(self.stderr)
-
-            self.report_artifacts("Arachni Output", [{"type": "txt", "path": stdout_log},
-                                                     {"type": "txt", "path": stderr_log}])
-
+            self._save_artifacts()
             self.report_finish()
         else:
+            self._save_artifacts()
             self.report_finish("FAILED")
+
+    def _save_artifacts(self):
+        stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id
+        stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id
+        with open(stdout_log, 'w') as f:
+            f.write(self.output)
+        with open(stderr_log, 'w') as f:
+            f.write(self.stderr)
+
+        self.report_artifacts("Arachni Output", [{"type": "txt", "path": stdout_log},
+                                                 {"type": "txt", "path": stderr_log}])
