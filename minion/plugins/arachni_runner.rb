@@ -41,11 +41,11 @@ opt_parser = OptionParser.new do |opt|
   opt.on("--http-timeout integer", "HTTP request timeout in milliseconds.") do |http_timeout|
     options["http_timeout"] = http_timeout.to_i
   end
-  opt.on("--cookie-jar filepath", "Netscape HTTP cookie file, use curl to create it.") do |filepath|
+  opt.on("--cookie-jar filepath", "Netscape HTTP cookie file, use curl to create it.") do |cookie_jar|
     options["cookie_jar"] = cookie_jar
   end
   opt.on("--cookie-string name=value,name2=value2", "Cookies, as a string, to be sent to the web application.") do |cookie_string|
-    options["cookie_string"] = cookie.string.split(',')
+    options["cookie_string"] = cookie_string.split(',')
   end
   opt.on("--user-agent string", "Specify user agent.") do |user_agent|
     options["user_agent"] = user_agent
@@ -182,6 +182,12 @@ opt_parser = OptionParser.new do |opt|
     options["proxy_type"] = proxy_type
   end
 
+  # Reports
+  options["reports"] = []
+  opt.on("--report report_type,report_type2",  "Tells Arachni which report component to use.") do |report_types|
+    options["reports" ] = report_types.split(',')
+  end
+
   # URL to scan
   opt.on("-u", "--url URL", "URL to scan") do |url|
     options["url"] = url
@@ -281,10 +287,17 @@ while sleep 1
     break if !progress['busy']
 end
 
-puts "-----[REPORT FOLLOWS]-----"
+puts "-----[ stdout REPORT FOLLOWS ]-----"
 
 # Grab the report as a Hash.
 pp service.report
+
+options["reports"].each do |report_type|
+    puts "-----[ " + report_type + " REPORT FOLLOWS ]-----"
+    puts service.report_as report_type
+end
+
+puts "-----[END]-----"
 
 # Kill the instance and its process, no zombies please...
 service.shutdown

@@ -65,6 +65,9 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.ARACHNI_ARGS.append(str(self.configuration['http_timeout']))
 
         # TODO : --cookie-jar
+        if 'cookie_jar_path' in self.configuration:
+            self.ARACHNI_ARGS.append("--cookie-jar")
+            self.ARACHNI_ARGS.append(self.configuration['cookie_jar_path'])
 
         if 'cookie_string' in self.configuration:
             self.ARACHNI_ARGS.append("--http-timeout")
@@ -177,6 +180,12 @@ class ArachniPlugin(ExternalProcessPlugin):
              self.ARACHNI_ARGS.append("--plugin")
              self.ARACHNI_ARGS.append(self.configuration['plugin'])
 
+        # Reports
+        # TODO : Multiple invocations
+        if 'reports' in self.configuration:
+            self.ARACHNI_ARGS.append("--reports")
+            self.ARACHNI_ARGS.append(self.configuration['reports'])
+
         self.spawn(self.ARACHNI_NAME, self.ARACHNI_ARGS)
 
     def do_stop(self):
@@ -216,10 +225,15 @@ class ArachniPlugin(ExternalProcessPlugin):
         # Percent Done: [-4.27]
         # Current Status: [auditing]
         # Issues: {...}
-        # -----[REPORT FOLLOWS]-----
+        # -----[ <report_type> REPORT FOLLOWS ]-----
+        # -----[END]-----
+
+        in_report = False
+        self.reports = []
 
         for data in output.split("\n"):
 
+            # Check issues
             issues_line = r"\s+\*\s(.*?)\s\(CWE\sID\s\:\s(\d+)\s-\s(.*?)\)\sfor\sinput\s(.*?)\son" \
                           r"\s(.*?)\s\(Method\s:\s(.*?)\)\swith\s(.*?)\sseverity\sand\sinjected\scode\s(.*?)\." \
                           r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s([^-]*)\."
@@ -235,6 +249,30 @@ class ArachniPlugin(ExternalProcessPlugin):
                                                description=m.group(9), remediation=m.group(10))
                     self.report_issues([issue])
                     self.reported_issues.append(combined_issue)
+
+            # Check report
+            report_regex = r"-----\[\s(.*?)\sREPORT\sFOLLOWS\s\]-----"
+            report_match = re.match(report_regex, data)
+
+            # Check end
+            end_regex = r"-----\[END]-----"
+            end_match = re.match(end_regex, data)
+
+            if report_match is not None:
+                report_type = report_match.groups()[0]
+                report_path = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + \
+                              report_type.upper() + "_REPORT_" + self.output_id + "." + report_type
+                in_report = True
+
+            if in_report and report_match is None:
+                if end_match is None:
+                    with open(report_path, 'a+') as f:
+                        f.write(data)
+                        f.write('\n')
+                else:
+                    in_report = False
+                    self.reports.append(report_path)
+
 
     def do_process_stdout(self, data):
         self.output += data
@@ -307,5 +345,5 @@ class ArachniPlugin(ExternalProcessPlugin):
         with open(stderr_log, 'w') as f:
             f.write(self.stderr)
 
-        self.report_artifacts("Arachni Output", [{"type": "txt", "path": stdout_log},
-                                                 {"type": "txt", "path": stderr_log}])
+        self.report_artifacts("Arachni Output", [stdout_log, stderr_log])
+        self.report_artifacts("Arachni Reports", self.reports)
