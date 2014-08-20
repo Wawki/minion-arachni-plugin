@@ -7,6 +7,7 @@ from minion.plugins.base import ExternalProcessPlugin
 import os
 import re
 import uuid
+import socket
 
 
 def _minion_severity(severity):
@@ -335,7 +336,12 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.report_finish()
         else:
             self._save_artifacts()
-            self.report_finish("FAILED")
+            failure = {
+                "hostname": socket.gethostname(),
+                "exception": self.stderr,
+                "message": "Plugin failed"
+            }
+            self.report_finish("FAILED", failure)
 
     def _save_artifacts(self):
         stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id
@@ -346,4 +352,5 @@ class ArachniPlugin(ExternalProcessPlugin):
             f.write(self.stderr)
 
         self.report_artifacts("Arachni Output", [stdout_log, stderr_log])
-        self.report_artifacts("Arachni Reports", self.reports)
+        if self.reports:
+            self.report_artifacts("Arachni Reports", self.reports)
