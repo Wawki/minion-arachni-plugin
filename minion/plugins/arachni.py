@@ -344,13 +344,20 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.report_finish("FAILED", failure)
 
     def _save_artifacts(self):
-        stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id
-        stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id
-        with open(stdout_log, 'w') as f:
-            f.write(self.output)
-        with open(stderr_log, 'w') as f:
-            f.write(self.stderr)
+        stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id + ".txt"
+        stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id + ".txt"
+        output_artifacts = []
 
-        self.report_artifacts("Arachni Output", [stdout_log, stderr_log])
+        if self.output:
+            with open(stdout_log, 'w') as f:
+                f.write(self.output)
+            output_artifacts.append(stdout_log)
+        if self.stderr:
+            with open(stderr_log, 'w') as f:
+                f.write(self.stderr)
+            output_artifacts.append(stderr_log)
+
+        if output_artifacts:
+            self.report_artifacts("Arachni Output", output_artifacts)
         if self.reports:
             self.report_artifacts("Arachni Reports", self.reports)
