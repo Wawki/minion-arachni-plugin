@@ -11,6 +11,7 @@ import socket
 
 
 def _minion_severity(severity):
+    severity = severity[0].upper() + severity[1:]
     if severity == 'Informational':
         return 'Info'
     return severity
@@ -50,142 +51,188 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.ARACHNI_ARGS.append(self.configuration['server'])
 
         # General
-        if 'only_positives' in self.configuration and self.configuration['only_positives']:
-            self.ARACHNI_ARGS.append("--only-positives")
+        if 'authorized_by' in self.configuration:
+            self.ARACHNI_ARGS.append('--authorized-by')
+            self.ARACHNI_ARGS.append(str(self.configuration['authorized_by']))
 
-        if 'http_req_limit' in self.configuration:
-            self.ARACHNI_ARGS.append("--http-req-limit")
-            self.ARACHNI_ARGS.append(str(self.configuration['http_req_limit']))
+        # Scope
+        if 'scope_include_pattern' in self.configuration:
+            for pattern in self.configuration['scope_include_pattern']:
+                self.ARACHNI_ARGS.append('--scope-include-pattern')
+                self.ARACHNI_ARGS.append(str(pattern))
 
-        if 'http_queue_size'in self.configuration:
-            self.ARACHNI_ARGS.append("--http-queue-size")
-            self.ARACHNI_ARGS.append(str(self.configuration['http_queue_size']))
+        if 'scope_include_subdomains' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-include-subdomains')
 
-        if 'http_timeout' in self.configuration:
-            self.ARACHNI_ARGS.append("--http-timeout")
-            self.ARACHNI_ARGS.append(str(self.configuration['http_timeout']))
+        if 'scope_exclude_pattern' in self.configuration:
+            for pattern in self.configuration['scope_exclude_pattern']:
+                self.ARACHNI_ARGS.append('--scope-exclude-pattern')
+                self.ARACHNI_ARGS.append(str(pattern))
 
-        # TODO : --cookie-jar
-        if 'cookie_jar_path' in self.configuration:
-            self.ARACHNI_ARGS.append("--cookie-jar")
-            self.ARACHNI_ARGS.append(self.configuration['cookie_jar_path'])
+        if 'scope_exclude_content_pattern' in self.configuration:
+            for pattern in self.configuration['scope_exclude_content_pattern']:
+                self.ARACHNI_ARGS.append('--scope-exclude-content-pattern')
+                self.ARACHNI_ARGS.append(str(pattern))
 
-        if 'cookie_string' in self.configuration:
-            self.ARACHNI_ARGS.append("--http-timeout")
-            self.ARACHNI_ARGS.append(self.configuration['cookie_string'])
+        if 'scope_exclude_binaries' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-exclude-binaries')
 
-        if 'user_agent' in self.configuration:
-            self.ARACHNI_ARGS.append("--user-agent")
-            self.ARACHNI_ARGS.append(self.configuration['user_agent'])
+        if 'scope_redundant_path_pattern' in self.configuration:
+            for pattern in self.configuration['scope_redundant_path_pattern']:
+                self.ARACHNI_ARGS.append('--scope-redundant-path-pattern')
+                self.ARACHNI_ARGS.append(str(pattern))
 
-        # TODO : multiple invocations
-        if 'custom_header' in self.configuration:
-            self.ARACHNI_ARGS.append("--customer-header")
-            self.ARACHNI_ARGS.append(self.configuration['custom_header'])
+        if 'scope_auto_redundant' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-auto-redundant')
+            self.ARACHNI_ARGS.append(self.configuration['scope_auto_redundant'])
 
-        if 'authed_by' in self.configuration:
-            self.ARACHNI_ARGS.append("--authed-by")
-            self.ARACHNI_ARGS.append(self.configuration['authed_by'])
+        if 'scope_directory_depth_limit' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-directory-depth-limit')
+            self.ARACHNI_ARGS.append(self.configuration['scope_directory_depth_limit'])
 
-        if 'login_check_url' in self.configuration:
-            self.ARACHNI_ARGS.append("--login_-check-url")
-            self.ARACHNI_ARGS.append(self.configuration['login_check_url'])
+        if 'scope_page_limit' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-page-limit')
+            self.ARACHNI_ARGS.append(self.configuration['scope_page_limit'])
 
-        if 'login_check_pattern' in self.configuration:
-            self.ARACHNI_ARGS.append("--login-check-pattern")
-            self.ARACHNI_ARGS.append(self.configuration['login_check_pattern'])
+        if 'scope_extend_paths' in self.configuration:
+            for path in self.configuration['scope_extend_paths']:
+                self.ARACHNI_ARGS.append('--scope-extend-paths')
+                self.ARACHNI_ARGS.append(str(path))
 
-        # Crawler
-        # TODO : multiple invocations
-        if 'exclude' in self.configuration:
-            self.ARACHNI_ARGS.append("--exclude")
-            self.ARACHNI_ARGS.append(self.configuration['exclude'])
+        if 'scope_restrict_paths' in self.configuration:
+            for path in self.configuration['scope_restrict_paths']:
+                self.ARACHNI_ARGS.append('--scope-restrict-paths')
+                self.ARACHNI_ARGS.append(str(path))
 
-        # TODO : multiple invocations
-        if 'exclude_page' in self.configuration:
-            self.ARACHNI_ARGS.append("--exclude-page")
-            self.ARACHNI_ARGS.append(self.configuration['exclude_page'])
+        if 'scope_url_rewrite' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-url-rewrite')
+            self.ARACHNI_ARGS.append(self.configuration['scope_url_rewrite'])
 
-        # TODO : multiple invocations
-        if 'include' in self.configuration:
-            self.ARACHNI_ARGS.append("--include")
-            self.ARACHNI_ARGS.append(self.configuration['include'])
+        if 'scope_dom_depth_limit' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-dom-depth-limit')
+            self.ARACHNI_ARGS.append(self.configuration['scope_dom_depth_limit'])
 
-        # TODO : multiple invocations
-        if 'redundant' in self.configuration:
-            self.ARACHNI_ARGS.append("--redundant")
-            self.ARACHNI_ARGS.append(self.configuration['redundant'])
+        if 'scope_https_only' in self.configuration:
+            self.ARACHNI_ARGS.append('--scope-https-only')
 
-        if 'auto_redundant' in self.configuration:
-            self.ARACHNI_ARGS.append("--auto-redundant")
-            self.ARACHNI_ARGS.append(str(self.configuration['auto_redundant']))
+        # Audit
+        if 'audit_links' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-links')
 
-        if 'follow_subdomains' in self.configuration and self.configuration['follow_subdomains']:
-             self.ARACHNI_ARGS.append("--follow-sub-domains")
+        if 'audit_forms' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-forms')
 
-        if 'depth' in self.configuration:
-            self.ARACHNI_ARGS.append("--depth")
-            self.ARACHNI_ARGS.append(str(self.configuration['depth']))
+        if 'audit_cookies' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-cookies')
 
-        if 'link_count' in self.configuration:
-            self.ARACHNI_ARGS.append("--link-count")
-            self.ARACHNI_ARGS.append(str(self.configuration['link_count']))
+        if 'audit_cookies_extensively' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-cookies-extensively')
 
-        if 'redirect_limit' in self.configuration:
-            self.ARACHNI_ARGS.append("--redirect-limit")
-            self.ARACHNI_ARGS.append(str(self.configuration['redirect_limit']))
+        if 'audit_headers' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-headers')
 
-        #TODO : --extends-paths
-        #TODO : --restrict-paths
+        if 'audit_link_template' in self.configuration:
+            for template in self.configuration['audit_link_template']:
+                self.ARACHNI_ARGS.append('--audit-link-template')
+                self.ARACHNI_ARGS.append(str(template))
 
-        # Auditor
-        if 'audit_links' in self.configuration and self.configuration['audit_links']:
-            self.ARACHNI_ARGS.append("--audit-links")
+        if 'audit_with_both_methods' in self.configuration:
+            self.ARACHNI_ARGS.append('--audit-with-both-methods')
 
-        if 'audit_forms' in self.configuration and self.configuration['audit_forms']:
-             self.ARACHNI_ARGS.append("--audit-forms")
+        if 'audit_exclude_vector' in self.configuration:
+            for vector in self.configuration['audit_exclude_vector']:
+                self.ARACHNI_ARGS.append('--audit-exclude-vector')
+                self.ARACHNI_ARGS.append(str(vector))
 
-        if 'audit_cookies' in self.configuration and self.configuration['audit_cookies']:
-             self.ARACHNI_ARGS.append("--audit-cookies")
+        if 'audit_include_vector' in self.configuration:
+            for vector in self.configuration['audit_include_vector']:
+                self.ARACHNI_ARGS.append('--audit-include-vector')
+                self.ARACHNI_ARGS.append(str(vector))
 
-        # TODO : multiple invocations
-        if 'exclude_cookie' in self.configuration:
-            self.ARACHNI_ARGS.append("--exclude-cookie")
-            self.ARACHNI_ARGS.append(self.configuration['exclude_cookie'])
+        # Input
 
-        # TODO : multiple invocations
-        if 'exclude_vector' in self.configuration:
-            self.ARACHNI_ARGS.append("--exclude-vector")
-            self.ARACHNI_ARGS.append(self.configuration['exclude_vector'])
+        if 'input_value' in self.configuration:
+            for value in self.configuration['input_value']:
+                self.ARACHNI_ARGS.append('--input-value')
+                self.ARACHNI_ARGS.append(str(value))
 
-        if 'audit_headers' in self.configuration and self.configuration['audit_headers']:
-             self.ARACHNI_ARGS.append("--audit-headers")
+        if 'input_without_defaults' in self.configuration:
+            self.ARACHNI_ARGS.append('--input-without-defaults')
 
-        # Coverage
-        if 'audit_cookies_extensively' in self.configuration and self.configuration['audit_cookies_extensively']:
-             self.ARACHNI_ARGS.append("--audit-cookies-extensively")
+        if 'input_force' in self.configuration:
+            self.ARACHNI_ARGS.append('--input-force')
 
-        if 'fuzz_methods' in self.configuration and self.configuration['fuzz_methods']:
-             self.ARACHNI_ARGS.append("--fuzz-methods")
+        # Http
 
-        if 'exclude_binaries' in self.configuration and self.configuration['exclude_binaries']:
-             self.ARACHNI_ARGS.append("--exclude-binaries")
+        if 'http_user_agent' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-user-agent')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_user_agent']))
 
-        # Modules
-        if 'modules' in self.configuration:
-             self.ARACHNI_ARGS.append("--modules")
-             self.ARACHNI_ARGS.append(self.configuration['modules'])
+        if 'http_request_concurrency' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-request-concurrency')
+            self.ARACHNI_ARGS.append(self.configuration['http_request_concurrency'])
 
-        # Plugins
-        if 'plugin' in self.configuration:
-             self.ARACHNI_ARGS.append("--plugin")
-             self.ARACHNI_ARGS.append(self.configuration['plugin'])
+        if 'http_request_timeout' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-request-timeout')
+            self.ARACHNI_ARGS.append(self.configuration['http_request_timeout'])
+
+        if 'http_request_redirect_limit' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-request-redirect-limit')
+            self.ARACHNI_ARGS.append(self.configuration['http_request_redirect_limit'])
+
+        if 'http_request_queue_size' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-request-queue-size')
+            self.ARACHNI_ARGS.append(self.configuration['http_request_queue_size'])
+
+        if 'http_request_header' in self.configuration:
+            for header in self.configuration['http_request_header']:
+                self.ARACHNI_ARGS.append('--http-request-header')
+                self.ARACHNI_ARGS.append(str(header))
+
+        if 'http_response_max_size' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-response-max-size')
+            self.ARACHNI_ARGS.append(self.configuration['http_response_max_size'])
+
+        if 'http_cookie_jar' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-cookie-jar')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_cookie_jar']))
+
+        if 'http_cookie_string' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-cookie-string')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_cookie_string']))
+
+        if 'http_authentication_username' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-authentication-username')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_authentication_username']))
+
+        if 'http_authentication_password' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-authentication-password')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_authentication_password']))
+
+        if 'http_proxy' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-proxy')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_proxy']))
+
+        if 'http_proxy_authentication' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-proxy-authentication')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_proxy_authentication']))
+
+        if 'http_proxy_type' in self.configuration:
+            self.ARACHNI_ARGS.append('--http-proxy-type')
+            self.ARACHNI_ARGS.append(str(self.configuration['http_proxy_type']))
+
+        # Checks
+
+        if 'checks' in self.configuration:
+            self.ARACHNI_ARGS.append('--checks')
+            self.ARACHNI_ARGS.append(str(self.configuration['checks']))
 
         # Reports
-        # TODO : Multiple invocations
         if 'reports' in self.configuration:
             self.ARACHNI_ARGS.append("--reports")
             self.ARACHNI_ARGS.append(self.configuration['reports'])
+
+        self.reports = []
 
         self.spawn(self.ARACHNI_NAME, self.ARACHNI_ARGS)
 
@@ -230,7 +277,6 @@ class ArachniPlugin(ExternalProcessPlugin):
         # -----[END]-----
 
         in_report = False
-        self.reports = []
 
         for data in output.split("\n"):
 
@@ -313,7 +359,6 @@ class ArachniPlugin(ExternalProcessPlugin):
     def do_process_stderr(self, data):
         # TODO: Look for ConnectionError and display a message informing the user to launch arachni_rpcd.
         # `initialize': Connection refused - connect(2) (Arachni::RPC::Exceptions::ConnectionError)
-
         self.stderr += data
 
         connection_error_regex = r".*Connection\srefused\s-\sconnect\(2\)"

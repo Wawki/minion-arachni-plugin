@@ -6,202 +6,374 @@ require 'pp'
 require 'optparse'
 
 options = {}
+reports = []
 opt_parser = OptionParser.new do |opt|
-  opt.banner = "Usage: arachni_runner.rb [options]"
+    opt.banner = "Usage: arachni_runner.rb [options]"
 
-  # Some sane options
-  options["modules"] = ["xss*"]
-  options["audit_forms"] = true
-  options["audit_links"] = true
-  options["audit_cookies"] = true
-  options["server"] = "127.0.0.1:7331"
+    # Defaults (for arrays & dictionaries ):
+        # Scope
 
-  opt.separator "Supported options:"
+    options['scope'] = {}
+    options['scope']['include_path_patterns'] = []
+    options['scope']['exclude_path_patterns'] = []
+    options['scope']['exclude_content_patterns'] = []
+    options['scope']['redundant_path_patterns'] = {}
+    options['scope']['extend_paths'] = []
+    options['scope']['restrict_paths'] = []
+    options['scope']['url_rewrites'] = {}
 
-  # General
-  opt.separator ""
-  opt.separator "General -----------------"
-  opt.separator ""
+        # Audit
 
-  opt.on("--only-positives", "Echo positive results *only*.") do
-    options["only_positives"] = true
-  end
-  opt.on("--http-username string", "Username for HTTP authentication.") do |http_username|
-    options["http_username"] = http_username
-  end
-  opt.on("--http-password string", "Password for HTTP authentication.") do |http_password|
-    options["http_password"] = http_password
-  end
-  opt.on("--http-req-limit integer", "Concurrent HTTP requests limit.") do |http_req_limit|
-    options["http_req_limit"] = http_req_limit.to_i
-  end
-  opt.on("--http-queue-size integer", "Maximum amount of requests to keep in queue.") do |http_queue_size|
-    options["http_queue_size"] = http_queue_size.to_i
-  end
-  opt.on("--http-timeout integer", "HTTP request timeout in milliseconds.") do |http_timeout|
-    options["http_timeout"] = http_timeout.to_i
-  end
-  opt.on("--cookie-jar filepath", "Netscape HTTP cookie file, use curl to create it.") do |cookie_jar|
-    options["cookie_jar"] = cookie_jar
-  end
-  opt.on("--cookie-string name=value,name2=value2", "Cookies, as a string, to be sent to the web application.") do |cookie_string|
-    options["cookie_string"] = cookie_string.split(',')
-  end
-  opt.on("--user-agent string", "Specify user agent.") do |user_agent|
-    options["user_agent"] = user_agent
-  end
-  opt.on("--custom-header name=valuer", "Specify custom headers to be included in the HTTP requests.") do |custom_header|
-    header, val = custom_header.to_s.split( /=/, 2 )
-    options["header"] = header
-    options["val"] = val
-  end
-  opt.on("--authed_by string", "E-mail address of the person who authorized the scan.") do |authed_by|
-    options["authed_key"] = authed_by
-  end
-  opt.on("--login-check-url url", "A URL used to verify that the scanner is still logged in to the web application.") do |login_check_url|
-    options["login_check_url"] = login_check_url
-  end
-  opt.on("--login-check-pattern regexp", "A pattern used against the body of the 'login-check-url' to verify that the scanner is still logged in to the web application.") do |login_check_pattern|
-    options["login_check_pattern"] = login_check_pattern
-  end
+    options['audit'] = {}
+    options['audit']['link_templates'] = []
+    options['audit']['exclude_vector_patterns'] = []
+    options['audit']['include_vector_patterns'] = []
 
-  # Crawler
-  opt.separator ""
-  opt.separator "Crawler -----------------"
-  opt.separator ""
+        # Input
 
-  opt.on("-e regexp", "--exclude regexp", "Exclude urls matching regexp.") do |exclude|
-    options["exclude"] = exclude
-  end
-  opt.on("--exclude-page regexp", "Exclude pages whose content matches regex.") do |exclude_page|
-    options["exclude_page"] = exclude_page
-  end
-  opt.on("-i regexp", "--include regexp", "Include *only* urls matching regexp.") do |include|
-    options["include"] = include
-  end
-  opt.on("--redundant regex=limit", "Limit crawl on redundant pages likes galleries or catalogs.") do |redundant|
-    options["redundant"] = redundant
-  end
-  opt.on("-f", "--follow_subdomains", "Follow links to subdomains.") do
-    options["follow_subdomains"] = true
-  end
-  opt.on("--depth integer", "Directory depth limit.") do |depth|
-    options["depth"] = depth.to_i
-  end
-  opt.on("--link-count integer", "How many links to follow.") do |link_count|
-    options["link_count"] = link_count.to_i
-  end
-  opt.on("--redirect-limit integer", "How many redirects to follow.") do |redirect_limit|
-    options["redirect_limit"] = redirect_limit.to_i
-  end
-  opt.on("--extend-paths filepath", "Add the paths in file to the ones discovered by the crawler.") do |extend_paths|
-    options["extend_paths"] = extend_paths
-  end
-  opt.on("--restrict-paths filepath", "Use the paths in file instead of crawling.") do |restrict_paths|
-    options["restrict_paths"] = restrict_paths
-  end
-  opt.on("--https-only", "Forces the system to only follow HTTPS URLs.") do
-    options["https_only"] = true
-  end
+    options['input'] = {}
+    options['input']['values'] =  {},
 
-  # Auditor
-  opt.separator ""
-  opt.separator "Auditor -----------------"
-  opt.separator ""
+        # HTTP
 
-  opt.on("-g", "--audit-links", "Audit links.") do
-    options["audit_links"] = true
-  end
-  opt.on("-p", "--audit-forms", "Audit forms.") do
-    options["audit_forms"] = true
-  end
-  opt.on("-c", "--audit-cookies", "Audit cookies.") do
-    options["audit_cookies"] = true
-  end
-  opt.on("--exclude-cookie name", "Cookie to exclude from the audit by name.") do |exclude_cookie|
-    options["exclude_cookie"] = exclude_cookie
-  end
-  opt.on("--exclude-vector name", "Input vector (parameter) not to audity by name.") do |exclude_vector|
-    options["exclude_vector"] = exclude_vector
-  end
-  opt.on("--audit-headers", "Audit HTTP headers.") do
-    options["headers"] = true
-  end
+    options['http'] = {}
+    options['http']['request_headers'] = {}
+    options['http']['cookies'] = {}
 
-  # Coverage
-  opt.separator ""
-  opt.separator "Auditor -----------------"
-  opt.separator ""
 
-  opt.on("--audit-cookies-extensively", "Submit all links and forms of the page along with the cookie permutations.") do
-    options["audit_cookies_extensively"] = audit_cookies_extensively
-  end
-  opt.on("--fuzz-methods", "Audit links, forms and cookies using both GET and POST requests.") do
-    options["fuzz_methods"] = true
-  end
-  opt.on("--exclude-binaries", "Exclude non text-based pages from the audit.") do
-    options["exclude_binaries"] = true
-  end
+    # Some sane options
+    options['checks'] = ['xss*']
+    options['server'] = '127.0.0.1:7331'
 
-  # Modules
-  opt.separator ""
-  opt.separator "Modules -----------------"
-  opt.separator ""
+    opt.separator 'Supported options:'
 
-  opt.on("-m modname,modname", "--modules modname,modname", "Comma separated list of modules to load.") do |modules|
-    options["modules"] = modules.split(',')
-  end
+    # General
+    opt.separator ''
+    opt.separator 'General -----------------'
+    opt.separator ''
 
-  # Plugins
-  # TODO : Plugins
+    opt.on('--authorized-by EMAIL_ADDRESS',
+           'E-mail address of the person who authorized the scan.'
+    ) do |email_address|
+        options['authorized_by'] = email_address
+    end
 
-  # Platforms
-  opt.separator ""
-  opt.separator "Platforms -----------------"
-  opt.separator ""
+    # Scope
+    opt.separator ''
+    opt.separator 'Scope -----------------'
+    opt.separator ''
 
-  opt.on("--no-fingerprinting", "Disable platform fingerprinting.") do
-    options["no_fingerprinting"] = true
-  end
-  opt.on("--platorms platform,platform", "Comma separated list of platforms (by shortname) to audit.") do |platforms|
-    options["platorms"] = platorms.to_s.split(',')
-  end
+    opt.on('--scope-include-pattern PATTERN', Regexp,
+           'Only include resources whose path/action matches PATTERN.',
+           '(Can be used multiple times.)'
+    ) do |pattern|
+        options['scope']['include_path_patterns'] << pattern
+    end
 
-  # Proxy
-  opt.separator ""
-  opt.separator "Proxy -----------------"
-  opt.separator ""
+    opt.on('--scope-include-subdomains',
+           'Follow links to subdomain.'
+    ) do
+        options['scope']['include_subdomains'] = true
+    end
 
-  opt.on("--proxy server:port", "Proxy address to use.") do |proxy|
-    options["proxy"] = proxy
-  end
-  opt.on("--proxy-auth user:passwd", "Proxy authentication credentials.") do |proxy_auth|
-    options["proxy_auth"] = proxy_auth
-  end
-  opt.on("--proxy-type type", "Proxy type; can be http, http_1_0, socks4, socks5, socks4a") do |proxy_type|
-    options["proxy_type"] = proxy_type
-  end
+    opt.on('--scope-exclude-pattern PATTERN', Regexp,
+           'Exclude resources whose path/action matches PATTERN.',
+           '(Can be used multiple times.)'
+    ) do |pattern|
+        options['scope']['exclude_path_patterns'] << pattern
+    end
 
-  # Reports
-  options["reports"] = []
-  opt.on("--report report_type,report_type2",  "Tells Arachni which report component to use.") do |report_types|
-    options["reports" ] = report_types.split(',')
-  end
+    opt.on('--scope-exclude-content-pattern PATTERN', Regexp,
+           'Exclude pages whose content matches PATTERN.',
+           '(Can be used multiple times.)'
+    ) do |pattern|
+        options['scope']['exclude_content_patterns'] << pattern
+    end
 
-  # URL to scan
-  opt.on("-u", "--url URL", "URL to scan") do |url|
-    options["url"] = url
-  end
+    opt.on('--scope-exclude-binaries',
+           'Exclude non text-based pages.',
+           '(Binary content can confuse passive checks that perform pattern matching.)'
+    ) do
+        options['scope']['exclude_binaries'] = true
+    end
 
-  # RPC Server
-  opt.on("--server server:port", "Dispatcher server to use.") do |server|
-    options["server"] = server
-  end
+    opt.on('--scope-redundant-path-pattern PATTERN:LIMIT',
+           'Limit crawl on redundant pages like galleries or catalogs.',
+           '(URLs matching PATTERN will be crawled LIMIT amount of times.)',
+           '(Can be used multiple times.)'
+    ) do |rule|
+        pattern, counter = rule.split( ':', 2 )
+        options['scope']['redundant_path_patterns'][ Regexp.new( pattern ) ] = Integer( counter )
+    end
 
-  opt.on_tail('-h', '--help', "Output this." ) do
-    puts opt
-    exit
-  end
+    opt.on('--scope-auto-redundant LIMIT', Integer,
+           'Only follow URLs with identical query parameter names LIMIT amount of times.',
+           '(Default: 10)'
+    ) do |counter|
+        options['scope']['auto_redundant_paths'] = counter || 10
+    end
+
+    opt.on('--scope-directory-depth-limit LIMIT', Integer,
+           'Directory depth limit.',
+           '(Default: inf)',
+           '(How deep Arachni should go into the site structure.)'
+    ) do |depth|
+        options['scope']['directory_depth_limit'] = depth
+    end
+
+    opt.on('--scope-page-limit LIMIT', Integer,
+           'How many pages to crawl and audit.',
+           '(Default: inf)'
+    ) do |limit|
+        options['scope']['page_limit'] = limit
+    end
+
+    opt.on('--scope-extend-paths FILE',
+           'Add the paths in FILE to the ones discovered by the crawler.',
+           '(Can be used multiple times.)'
+    ) do |file|
+        options['scope']['extend_paths'] << file
+    end
+
+    opt.on('--scope-restrict-paths FILE',
+           'Use the paths in FILE instead of crawling.',
+           '(Can be used multiple times.)'
+    ) do |file|
+        options['scope']['restrict_paths'].push(file)
+    end
+
+    opt.on('--scope-url-rewrite PATTERN:SUBSTITUTION',
+           'Rewrite URLs based on the given PATTERN and SUBSTITUTION.',
+           'To convert: http://test.com/articles/some-stuff/23 to http://test.com/articles?id=23',
+           'Use:        /articles/\[\w-]+\/(\d+)/:articles.php?id=\1'
+    ) do |rule|
+        pattern, substitution = rule.split( ':', 2 )
+        options['scope']['url_rewrites'][ Regex.new( pattern ) ] = substitution
+    end
+
+    opt.on('--scope-dom-depth-limit LIMIT', Integer,
+           'How deep to go into the DOM tree of each page, for pages with JavaScript code.',
+           "(Setting it to '0' will disable browser analysis.)"
+    ) do |limit|
+        options['scope']['dom_depth_limit'] = limit
+    end
+
+    opt.on('--scope-https-only',
+           'Forces the system to only follow HTTPS URLs.'
+    ) do
+        options['scope']['https_only'] = true
+    end
+
+    # Audit
+    opt.separator ''
+    opt.separator 'Audit -----------------'
+    opt.separator ''
+
+    opt.on('--audit-links', 'Audit links.') do
+        options['audit']['links'] = true
+    end
+
+    opt.on('--audit-forms', 'Audit forms.') do
+        options['audit']['forms'] = true
+    end
+
+    opt.on('--audit-cookies', 'Audit cookies.') do
+        options['audit']['cookies'] = true
+    end
+
+    opt.on('--audit-cookies-extensively',
+           'Submit all links and forms of the page along with the cookie permutations.',
+           '(*WARNING*: This will severely increase the scan-time.)'
+    ) do
+        options['audit']['cookies_extensively'] = true
+    end
+
+    opt.on('--audit-headers', 'Audit headers.') do
+        options['audit']['headers'] = true
+    end
+
+    opt.on('--audit-link-template TEMPLATE', Regexp,
+           'Regular expression with named captures to use to extract input information from generic paths.',
+           "To extract the 'input1' and 'input2' inputs from:",
+           '  http://test.com/input1/value1/input2/value2',
+           'Use:',
+           '  /input1\/(?<input1>\w+)\/input2\/(?<input2>\w+)/',
+           '(Can be used multiple times.)'
+    ) do |pattern|
+        options['audit']['link_templates'] |= [pattern]
+    end
+
+    opt.on('--audit-with-both-methods',
+           'Audit elements with both GET and POST requests.',
+           '(*WARNING*: This will severely increase the scan-time.)'
+    ) do
+        options['audit']['with_both_http_methods'] = true
+    end
+
+    opt.on('--audit-exclude-vector PATTERN', Regexp,
+           'Exclude input vectors whose name matches PATTERN.',
+           '(Can be used multiple times.)'
+    ) do |name|
+        options['audit']['exclude_vector_patterns'] << name
+    end
+
+    opt.on('--audit-include-vector PATTERN', Regexp,
+           'Include only input vectors whose name matches PATTERN.',
+           '(Can be used multiple times.)'
+    ) do |name|
+        options['audit']['include_vector_patterns'] << name
+    end
+
+    # Input
+    opt.separator ''
+    opt.separator 'Input -----------------'
+    opt.separator ''
+
+    opt.on('--input-value PATTERN:VALUE',
+           'PATTERN to match against input names and VALUE to use for them.',
+           '(Can be used multiple times.)'
+    ) do |rule|
+        pattern, value = rule.split( ':', 2 )
+        options['input']['values'][Regexp.new(pattern)] = value
+    end
+
+    # TODO : Repair
+    #opt.on('input-values-file FILE',
+    #       'YAML file containing a Hash object with regular expressions,' <<
+    #            ' to match agains input names, as keys and input values as values.'
+    #) do |file|
+    #    options['input']['values']['update_values_from_file'] = file
+    #end
+
+    opt.on('--input-without-defaults', 'Do not use the system default input values.') do
+        options['input']['without_defaults'] = true
+    end
+
+    opt.on('--input-force', 'Fill-in even non-empty inputs.' ) do
+        options['input']['force'] = true
+    end
+
+    # HTTP
+    opt.separator ''
+    opt.separator 'HTTP -----------------'
+    opt.separator ''
+
+    opt.on('--http-user-agent USER_AGENT',
+         "Value for the 'User-Agent' HTTP request header."
+    ) do |user_agent|
+        options['http']['user_agent'] = user_agent
+    end
+
+    opt.on('--http-request-concurrency MAX_CONCURRENCY', Integer,
+           'Maximum HTTP request concurrency.',
+           '(Be careful not to kill your server.)',
+           '(*NOTE*: If your scan seems unresponsive try lowering the limit.)'
+    ) do |concurrency|
+        options['http']['request_concurrency'] = concurrency
+    end
+
+    opt.on('--http-request-timeout TIMEOUT', Integer,
+           'HTTP request timeout in milliseconds.'
+    ) do |timeout|
+        options['http']['request_timemout'] = timeout
+    end
+
+    opt.on('--http-request-redirect-limit LIMIT', Integer,
+           'Maximum amount of redirects to follow for each HTTP request.'
+    ) do |limit|
+        options['http']['request_redirect_limit'] = limit
+    end
+
+    opt.on('--http-request-queue-size QUEUE_SIZE', Integer,
+           'Maximum amount of requests to keep in the queue.',
+           'Bigger size means better scheduling and better performance,',
+           'smaller means less RAM consumption.'
+    ) do |size|
+        options['http']['request_queue_size'] = size
+    end
+
+    opt.on("--http-request-header NAME=VALUE", "Specify custom headers to be included in the HTTP requests.") do |user_agent|
+        header, val = user_agent.split( '=', 2 )
+        options['http']['request_headers'][header] = val
+    end
+
+    opt.on('--http-response-max-size LIMIT', Integer,
+           'Do not download response bodies larger than the specified LIMIT, in bytes.',
+           '(Default: inf)'
+    ) do |size|
+        options['http']['reponse_max_size'] = size
+    end
+
+    opt.on('--http-cookie-jar COOKIE_JAR_FILE',
+           'Netscape-styled HTTP cookiejar file.'
+    ) do |file|
+        options['http']['cookie_jar_filepath'] = file
+    end
+
+    opt.on('--http-cookie-string COOKIE',
+           "Cookie representation as an 'Cookie' HTTP request header."
+    ) do |cookie|
+        options['http']['cookie_string'] = cookie
+    end
+
+    opt.on('--http-authentication-username USERNAME',
+           'Username for HTTP authentication.'
+    ) do |username|
+        options['http']['authentication_username'] = username
+    end
+
+    opt.on('--http-authentication-password PASSWORD',
+           'Password for HTTP authentication.'
+    ) do |password|
+        options['http']['authentication_password'] = password
+    end
+
+    opt.on('--http-proxy ADDRESS:PORT', 'Proxy to use.') do |url|
+        options['http']['proxy'] = url
+        options['http']['proxy_host'], options['http']['proxy_port'] = url.split( ':', 2 )
+    end
+
+    opt.on('--http-proxy-authentication USERNAME:PASSWORD',
+           'Proxy authentication credentials.'
+    ) do |credentials|
+        options['http']['proxy_username'], options['http']['proxy_password'] = credentials.split( ':', 2 )
+    end
+
+    opt.on('--http-proxy-type http,http_1_0,socks4,socks5,socks4a',
+           'Proxy type.', '(Default: auto)'
+    ) do |type|
+        options["http"]["proxy_type"] = type
+    end
+
+    # Checks
+    opt.separator ''
+    opt.separator 'Checks -----------------'
+    opt.separator ''
+
+    opt.on('--checks CHECK,CHECK2,...', 'Comma separated list of checks to load.') do |checks|
+    options['checks'] = checks.split(',')
+    end
+
+
+    # URL to scan
+    opt.on('-u', '--url URL', 'URL to scan') do |url|
+        options['url'] = url
+    end
+
+    # RPC Server
+    opt.on('--server server:port', 'Dispatcher server to use.') do |server|
+        options["server"] = server
+    end
+
+    # Reports
+    opt.on('--reports REPORT1,REPORT2', 'Type of the report you want to have.') do |report_list|
+        reports = report_list.split(',')
+    end
+
+    opt.on_tail('-h', '--help', "Output this." ) do
+        puts opt
+        exit
+    end
 
 end
 
@@ -235,7 +407,7 @@ dispatcher = Arachni::RPC::Pure::Client.new(
 
 begin
     instance_info = dispatcher.call( 'dispatcher.dispatch' )
-rescue Arachni::RPC::Exceptions::ConnectionError => conn_e
+rescue => conn_e
     abort conn_e.to_s
 end
 
@@ -247,59 +419,61 @@ instance = Arachni::RPC::Pure::Client.new(
 )
 
 # Avoid having to keep writing instance.call( 'service.<method>', ... )
-service = Arachni::RPC::RemoteObjectMapper.new( instance, 'service' )
+#service = Arachni::RPC::RemoteObjectMapper.new( instance, 'service' )
 
 #puts static_cookies
 
 trap("TERM") do
-  print "\nReceived Term Signal.  Shutting down the service..."
-  # If this is not done, we will leave extra arachni_rpcd processes lying around.
-  service.shutdown
-  puts "Done. Exiting"
-  exit
+      print "\nReceived Term Signal.  Shutting down the service..."
+      # If this is not done, we will leave extra arachni_rpcd processes lying around.
+      instance.call('service.shutdown')
+      puts "Done. Exiting"
+      exit
 end
 
+options.delete("server")
 
 # Todo : cookies
 begin
-    service.scan options
-rescue Arachni::RPC::Exceptions::InvalidToken => inv_e
+    instance.call('service.scan', options)
+rescue => inv_e
     abort inv_e.to_s
 end
 
+issue_digests = []
 while sleep 1
-    progress = service.progress( with: :issues )
+    issues = instance.call('service.progress', with: :issues, without: { issues: issue_digests })['issues']
 
-    puts "Percent Done:   [#{progress['stats']['progress']}%]"
-    puts "Current Status: [#{progress['status'].capitalize}]"
+    if not(issues.nil?) && issues.any?
+        #puts progress
 
-    if progress['issues'].any?
+        issue_digests |= issues.map { |issue| issue['digest'] }
+
         puts
         puts 'Issues thus far:'
-        progress['issues'].each do |issue|
+        issues.each do |issue|
             puts "  * #{issue['name']} (CWE ID : #{issue['cwe']} - #{issue['cwe_url']}) for input #{issue['var']} on '#{issue['url']}' (Method : #{issue['method']}) with #{issue['severity']} severity and injected code #{issue['injected']}. Description for the issue : #{issue['description'].delete("\n")} and a remediation : #{issue['remedy_guidance'].delete("\n")}."
         end
+
+        puts '-' * 50
     end
 
-    puts '-' * 50
-
     # we're done
-    break if !progress['busy']
+    break if !instance.call('service.busy?')
 end
 
-puts "-----[ stdout REPORT FOLLOWS ]-----"
+puts "-----[ txt REPORT FOLLOWS ]-----"
 
 # Grab the report as a Hash.
-pp service.report
+pp instance.call('service.report')
 
-options["reports"].each do |report_type|
+reports.each do |report_type|
     puts "-----[ " + report_type + " REPORT FOLLOWS ]-----"
-    puts service.report_as report_type
+    puts instance.call('service.report_as', report_type)
 end
 
 puts "-----[END]-----"
 
 # Kill the instance and its process, no zombies please...
-service.shutdown
-
+instance.call('service.shutdown')
 
