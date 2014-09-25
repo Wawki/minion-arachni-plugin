@@ -40,6 +40,14 @@ opt_parser = OptionParser.new do |opt|
     options['http']['request_headers'] = {}
     options['http']['cookies'] = {}
 
+        # Session
+
+    options['session'] = {}
+
+        # Browser cluster
+
+    options['browser_cluster'] = {}
+
 
     # Some sane options
     options['checks'] = ['xss*']
@@ -351,11 +359,98 @@ opt_parser = OptionParser.new do |opt|
     opt.separator ''
 
     opt.on('--checks CHECK,CHECK2,...', 'Comma separated list of checks to load.') do |checks|
-    options['checks'] = checks.split(',')
+        options['checks'] = checks.split(',')
     end
 
+    # TODO : PLugins
+
+    # Platforms
+    opt.separator ''
+    opt.separator 'Platforms -----------------'
+    opt.separator ''
+
+    opt.on('--platforms-no-fingerprint',
+           'Disable platform fingerprinting.',
+           '(By default, the system will try to identify the deployed server-side platforms automatically',
+           'in order to avoid sending irrelevant payloads.)'
+    ) do
+        options['no_fingerprinting'] = true
+    end
+
+    opt.on('--platforms PLATFORM,PLATFORM2,...',
+           'Comma sperated list of platforms (by shortname) to audit.',
+           '(The given platforms will be used *in addition* to fingerprinting. In order to restrict the audit to',
+           "these platforms enable the '--platforms-no-fingerprinting' option.')"
+    ) do |platforms|
+        options['platforms'] = platforms.split( ',' )
+    end
+
+    # Session
+    opt.separator ''
+    opt.separator 'Session -----------------'
+    opt.separator ''
+
+    opt.on('--session-check-url URL', String,
+           'URL to use to verify that the scanner is still logged in to the web application.',
+           "(Requires 'session-check-pattern'.)"
+    ) do |url|
+        options['session']['check_url'] = url.to_s
+    end
+
+    opt.on('--session-check-pattern PATTERN', Regexp,
+           "Pattern used agains the body of the 'session-check-url'",
+           'to verify that the scanner is still logged in to the web application.',
+           "(Requires 'session-check-url'.)"
+    ) do |pattern|
+        options['session']['check_pattern'] = pattern
+    end
+
+    # Browser cluster
+    opt.separator ''
+    opt.separator 'Browser cluster -----------------'
+    opt.separator ''
+
+    opt.on('--browser-cluster-pool-size SIZE', Integer,
+           'Amount of browser workers to keep in the pool and put to work.'
+    ) do |pool_size|
+        options['browser_cluster']['pool_size'] = pool_size
+    end
+
+    opt.on('--browser-cluster-job-timeout SECONDS', Integer,
+           'Maximum allowed time for each job.'
+    ) do |job_timeout|
+        options['browser_cluster']['job_timeout'] = job_timemout
+    end
+
+    opt.on('--browser-cluster-worker-time-to-live LIMIT', Integer,
+           'Re-spawn the browser of each worker every LIMIT jobs.'
+    ) do |worker_time_to_live|
+        options['browser_cluster']['worker_time_to_live'] = worker_time_to_live
+    end
+
+    opt.on('--browser-cluster-ignore-images', 'Do not load images.' ) do
+        options['browser_cluster']['ignore_images'] = true
+    end
+
+    opt.on('--browser-cluster-screen-width', Integer,
+           'Browser screen width.'
+    ) do |width|
+        options['browser_cluster']['screen_width'] = width
+    end
+
+    opt.on('--browser-cluster-screen-height', Integer,
+           'Browser screen height.'
+    ) do |height|
+        options['browser_cluster']['screen_height'] = height
+    end
+
+    # TODO : Can suspend scan
 
     # URL to scan
+    opt.separator ''
+    opt.separator 'URL -----------------'
+    opt.separator ''
+
     opt.on('-u', '--url URL', 'URL to scan') do |url|
         options['url'] = url
     end
@@ -452,7 +547,7 @@ while sleep 1
         puts
         puts 'Issues thus far:'
         issues.each do |issue|
-            puts "  * #{issue['name']} (CWE ID : #{issue['cwe']} - #{issue['cwe_url']}) for input #{issue['var']} on '#{issue['url']}' (Method : #{issue['method']}) with #{issue['severity']} severity and injected code #{issue['injected']}. Description for the issue : #{issue['description'].delete("\n")} and a remediation : #{issue['remedy_guidance'].delete("\n")}."
+            puts "  * #{issue['name']} (CWE ID : #{issue['cwe']} - #{issue['cwe_url']}) in #{issue['vector']['type']} input #{issue['vector']['affected_input_name']} using #{issue['vector']['method'].upcase} at '#{issue['vector']['url']}' pointing to '#{issue['vector']['action']}' with #{issue['severity']} severity and injected code #{issue['vector']['seed']}. Description for the issue : #{issue['description'].delete("\n")} and a remediation : #{issue['remedy_guidance'].delete("\n")}."
         end
 
         puts '-' * 50

@@ -16,6 +16,15 @@ def _minion_severity(severity):
         return 'Info'
     return severity
 
+def _arachni_report_type(report_type):
+    if report_type == 'stdout':
+        return 'txt'
+    elif report_type == 'ap':
+        return 'txt'
+    elif report_type == 'html':
+        return 'html.zip'
+    else:
+        return report_type
 
 class ArachniPlugin(ExternalProcessPlugin):
 
@@ -227,6 +236,50 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.ARACHNI_ARGS.append('--checks')
             self.ARACHNI_ARGS.append(str(self.configuration['checks']))
 
+        # Platforms
+
+        if 'platforms_no_fingerprinting' in self.configuration:
+            self.ARACHNI_ARGS.append('--platforms-no-fingerprinting')
+
+        if 'platforms' in self.configuration:
+            self.ARACHNI_ARGS.append('--platforms')
+            self.ARACHNI_ARGS.append(str(self.configuration['platforms']))
+
+        # Session
+
+        if 'session_check_url' in self.configuration:
+            self.ARACHNI_ARGS.append('--session-check-url')
+            self.ARACHNI_ARGS.append(str(self.configuration['session_check_url']))
+
+        if 'session_check_pattern' in self.configuration:
+            self.ARACHNI_ARGS.append('--session-check-pattern')
+            self.ARACHNI_ARGS.append(str(self.configuration['session_check_pattern']))
+
+        # Browser cluster
+
+        if 'browser_cluster_pool_size' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-pool-size')
+            self.ARACHNI_ARGS.append(str(self.configuration['browser_cluster_pool_size']))
+
+        if 'browser_cluster_job_timeout' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-job-timeout')
+            self.ARACHNI_ARGS.append(str(self.configuration['browser_cluster_job_timeout']))
+
+        if 'browser_cluster_worker_time_to_live' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-worker-time-to-live')
+            self.ARACHNI_ARGS.append(str(self.configuration['browser_cluster_worker_time_to_live']))
+
+        if 'browser_cluster_ignore_images' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-ignore-images')
+
+        if 'browser_cluster_screen_width' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-screen-width')
+            self.ARACHNI_ARGS.append(str(self.configuration['browser_cluster_screen_width']))
+
+        if 'browser_cluster_screen_height' in self.configuration:
+            self.ARACHNI_ARGS.append('--browser-cluster-screen-height')
+            self.ARACHNI_ARGS.append(str(self.configuration['browser_cluster_screen_height']))
+
         # Reports
         if 'reports' in self.configuration:
             self.ARACHNI_ARGS.append("--reports")
@@ -241,7 +294,7 @@ class ArachniPlugin(ExternalProcessPlugin):
         # Otherwise it will leave zombie arachni_rpcd processes around.
         self.process.signalProcess('TERM')
 
-    def _format_issue(self, name="", cwe_id="", cwe_url="", severity="", url="", param="", injected="", method="", description="", remediation=""):
+    def _format_issue(self, name="", cwe_id="", cwe_url="", input_type="", input="", method="", url="", pointing_to="", severity="", injected="", description="", remediation=""):
         issue = {}
         if name:
             issue["Summary"] = name
@@ -251,12 +304,12 @@ class ArachniPlugin(ExternalProcessPlugin):
             issue["Severity"] = severity
         if url:
             url_dict = {"URL": url}
-            if param:
-                url_dict["Parameter"] = param
+            if input:
+                url_dict["Parameter"] = input
             if injected:
                 url_dict["Evidence"] = "Code injected : " + injected
             if method:
-                url_dict["Extra"] = "Method : " + method
+                url_dict["Extra"] = "Input type : " + input_type + " --- " + "Method : " + method + " --- " + "Pointing to : " + pointing_to
             issue["URLs"] = [url_dict]
         if description:
             issue["Description"] = description
@@ -281,21 +334,18 @@ class ArachniPlugin(ExternalProcessPlugin):
         for data in output.split("\n"):
 
             # Check issues
-            issues_line = r"\s+\*\s(.*?)\s\(CWE\sID\s\:\s(\d+)\s-\s(.*?)\)\sfor\sinput\s(.*?)\son" \
-                          r"\s(.*?)\s\(Method\s:\s(.*?)\)\swith\s(.*?)\sseverity\sand\sinjected\scode\s(.*?)\." \
+            issues_line = r"\s+\*\s(.*?)\s\(CWE\sID\s\:\s(\d+)\s-\s(.*?)\)\sin\s(.*?)\sinput\s(.*?)\using" \
+                          r"\s(.*?)\sat\s(.*?)\spointing\sto\s(.*?)\swith\s(.*?)\sseverity\sand\sinjected\scode\s(.*?)\." \
                           r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s([^-]*)\."
             patt = re.compile(issues_line, re.I|re.U|re.DOTALL)
 
             for m in patt.finditer(str(data)):
-                combined_issue = {m.group(1), m.group(5), m.group(4)}
 
-                if combined_issue not in self.reported_issues:
-                    issue = self._format_issue(name=m.group(1), cwe_id=m.group(2), cwe_url=m.group(3),
-                                               severity=_minion_severity(m.group(7)), url=m.group(5),
-                                               param=m.group(4), injected=m.group(8), method=m.group(6),
-                                               description=m.group(9), remediation=m.group(10))
-                    self.report_issues([issue])
-                    self.reported_issues.append(combined_issue)
+                issue = self._format_issue(name=m.group(1), cwe_id=m.group(2), cwe_url=m.group(3),
+                                           input_type=m.group(4), input=m.group(5), method=m.group(6), url=m.group(7),
+                                           pointing_to=m.group(8), severity=_minion_severity(m.group(9)),
+                                           injected=m.group(10), description=m.group(11), remediation=m.group(12))
+                self.report_issues([issue])
 
             # Check report
             report_regex = r"-----\[\s(.*?)\sREPORT\sFOLLOWS\s\]-----"
@@ -306,9 +356,10 @@ class ArachniPlugin(ExternalProcessPlugin):
             end_match = re.match(end_regex, data)
 
             if report_match is not None:
-                report_type = report_match.groups()[0]
+                report_type = _arachni_report_type(report_match.groups()[0])
+                # TODO : Change the extension on report type
                 report_path = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + \
-                              report_type.upper() + "_REPORT_" + self.output_id + "." + report_type
+                                              report_type.upper() + "_REPORT_" + self.output_id + "." + report_type
                 in_report = True
 
             if in_report and report_match is None:
