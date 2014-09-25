@@ -547,7 +547,7 @@ while sleep 1
         puts
         puts 'Issues thus far:'
         issues.each do |issue|
-            puts "  * #{issue['name']} (CWE ID : #{issue['cwe']} - #{issue['cwe_url']}) in #{issue['vector']['type']} input #{issue['vector']['affected_input_name']} using #{issue['vector']['method'].upcase} at '#{issue['vector']['url']}' pointing to '#{issue['vector']['action']}' with #{issue['severity']} severity and injected code #{issue['vector']['seed']}. Description for the issue : #{issue['description'].delete("\n")} and a remediation : #{issue['remedy_guidance'].delete("\n")}."
+            puts "  * #{issue['name'] or '-'} (CWE ID : #{issue['cwe'] or '-'} - #{issue['cwe_url'] or '-'}) in #{issue['vector']['type'] or '-'} input #{issue['vector']['affected_input_name'] or '-'} using #{(issue['vector']['method'] or '-').upcase} at '#{issue['vector']['url'] or '-'} pointing to '#{issue['vector']['action'] or '-'}' with #{issue['severity'] or '-'} severity and injected code #{issue['vector']['seed'] or '-'}. Description for the issue : #{(issue['description'] or '-').delete("\n")} and a remediation : #{(issue['remedy_guidance'] or '-').delete("\n")}."
         end
 
         puts '-' * 50
