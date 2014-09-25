@@ -59,6 +59,11 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.ARACHNI_ARGS.append("--server")
             self.ARACHNI_ARGS.append(self.configuration['server'])
 
+        if 'report_dir' in self.configuration:
+            self.report_dir = self.configuration['report_dir']
+        else:
+            self.report_dir = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/"
+
         # General
         if 'authorized_by' in self.configuration:
             self.ARACHNI_ARGS.append('--authorized-by')
@@ -358,8 +363,7 @@ class ArachniPlugin(ExternalProcessPlugin):
             if report_match is not None:
                 report_type = _arachni_report_type(report_match.groups()[0])
                 # TODO : Change the extension on report type
-                report_path = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + \
-                                              report_type.upper() + "_REPORT_" + self.output_id + "." + report_type
+                report_path = self.report_dir + report_type.upper() + "_REPORT_" + self.output_id + "." + report_type
                 in_report = True
 
             if in_report and report_match is None:
@@ -440,8 +444,8 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.report_finish("FAILED", failure)
 
     def _save_artifacts(self):
-        stdout_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDOUT_" + self.output_id + ".txt"
-        stderr_log = os.path.dirname(os.path.realpath(__file__)) + "/artifacts/" + "STDERR_" + self.output_id + ".txt"
+        stdout_log = self.report_dir + "STDOUT_" + self.output_id + ".txt"
+        stderr_log = self.report_dir + "STDERR_" + self.output_id + ".txt"
         output_artifacts = []
 
         if self.output:
