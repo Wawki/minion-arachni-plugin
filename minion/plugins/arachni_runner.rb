@@ -547,7 +547,7 @@ while sleep 1
         puts
         puts 'Issues thus far:'
         issues.each do |issue|
-            puts "  * #{issue['name'] or '-'} (CWE ID : #{issue['cwe'] or '?'} - #{issue['cwe_url'] or '?'}) in #{issue['vector']['type'] or '-'} input #{issue['vector']['affected_input_name'] or '-'} using #{(issue['vector']['method'] or '-').upcase} at '#{issue['vector']['url'] or '-'} pointing to '#{issue['vector']['action'] or '-'}' with #{issue['severity'] or '-'} severity and injected code #{issue['vector']['seed'] or '-'}. Description for the issue : #{(issue['description'] or '-').delete("\n")} and a remediation : #{(issue['remedy_guidance'] or '-').delete("\n")}."
+            puts "  * #{issue['name'] or '-'} (CWE ID : #{issue['cwe'] or '0'} - #{issue['cwe_url'] or '-'}) in #{issue['vector']['type'] or '-'} input #{issue['vector']['affected_input_name'] or '-'} using #{(issue['vector']['method'] or '-').upcase} at #{issue['vector']['url'] or '-'} pointing to #{issue['vector']['action'] or '-'} with #{issue['severity'] or '-'} severity and injected code #{issue['vector']['seed'] or '-'}. Description for the issue : #{(issue['description'] or '-').gsub("\n"," ")} and a remediation : #{(issue['remedy_guidance'] or '-').gsub("\n"," ")}."
         end
 
         puts '-' * 50
