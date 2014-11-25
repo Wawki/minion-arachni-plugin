@@ -341,7 +341,7 @@ class ArachniPlugin(ExternalProcessPlugin):
             # Check issues
             issues_line = r"\s+\*\s(.*?)\s\(CWE\sID\s\:\s(\d+)\s-\s(.*?)\)\sin\s(.*?)\sinput\s(.*?)\using" \
                           r"\s(.*?)\sat\s(.*?)\spointing\sto\s(.*?)\swith\s(.*?)\sseverity\sand\sinjected\scode\s(.*?)\." \
-                          r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s([^-]*)\."
+                          r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s(.*?)$"
             patt = re.compile(issues_line, re.I|re.U|re.DOTALL)
 
             for m in patt.finditer(str(data)):
