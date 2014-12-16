@@ -7,6 +7,7 @@ require 'optparse'
 
 options = {}
 reports = []
+
 opt_parser = OptionParser.new do |opt|
     opt.banner = "Usage: arachni_runner.rb [options]"
 
@@ -446,6 +447,11 @@ opt_parser = OptionParser.new do |opt|
 
     # TODO : Can suspend scan
 
+    # Set timeout for the scan
+    opt.on('--timeout TIMEOUT', 'timeout in HOURS:MINUTES:SECONDS') do |timeout|
+        options['Timeout'] = timeout
+    end
+
     # URL to scan
     opt.separator ''
     opt.separator 'URL -----------------'
@@ -469,7 +475,6 @@ opt_parser = OptionParser.new do |opt|
         puts opt
         exit
     end
-
 end
 
 opt_parser.parse!
@@ -547,7 +552,15 @@ while sleep 1
         puts
         puts 'Issues thus far:'
         issues.each do |issue|
-            puts "  * #{issue['name'] or '-'} (CWE ID : #{issue['cwe'] or '0'} - #{issue['cwe_url'] or '-'}) in #{issue['vector']['type'] or '-'} input #{issue['vector']['affected_input_name'] or '-'} using #{(issue['vector']['method'] or '-').upcase} at #{issue['vector']['url'] or '-'} pointing to #{issue['vector']['action'] or '-'} with #{issue['severity'] or '-'} severity and injected code #{issue['vector']['seed'] or '-'}. Description for the issue : #{(issue['description'] or '-').gsub("\n"," ")} and a remediation : #{(issue['remedy_guidance'] or '-').gsub("\n"," ")}"
+            print "  * #{issue['name'] or '-'} (CWE ID : #{issue['cwe'] or '0'} - #{issue['cwe_url'] or '-'}) "
+            print "in #{issue['vector']['type'] or '-'} input #{issue['vector']['affected_input_name'] or '-'} "
+            print "using #{(issue['vector']['method'] or '-').upcase} at #{issue['vector']['url'] or '-'} "
+            print "pointing to #{issue['vector']['action'] or '-'} with #{issue['severity'] or '-'} "
+            print "severity and injected code #{issue['vector']['seed'] or '-'}. "
+            print "Description for the issue : #{(issue['description'] or '-').gsub("\n"," ")} "
+            print "and a remediation : #{(issue['remedy_guidance'] or '-').gsub("\n"," ")} "
+            print "and code : #{issue['vector']['html'].gsub("\n", "[#nl#]") or '-'}"
+            print "\n"
         end
 
         puts '-' * 50

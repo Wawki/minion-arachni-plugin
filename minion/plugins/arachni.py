@@ -299,7 +299,7 @@ class ArachniPlugin(ExternalProcessPlugin):
         # Otherwise it will leave zombie arachni_rpcd processes around.
         self.process.signalProcess('TERM')
 
-    def _format_issue(self, name="", cwe_id="", cwe_url="", input_type="", input="", method="", url="", pointing_to="", severity="", injected="", description="", remediation=""):
+    def _format_issue(self, name="", cwe_id="", cwe_url="", input_type="", input="", method="", url="", pointing_to="", severity="", injected="", description="", remediation="", code=""):
         issue = {}
         if name:
             issue["Summary"] = name
@@ -313,6 +313,9 @@ class ArachniPlugin(ExternalProcessPlugin):
                 url_dict["Parameter"] = input
             if injected:
                 url_dict["Evidence"] = "Code injected : " + injected
+            if code:
+                # Re-encode new line and remove \t for better print-out in <pre>
+                url_dict["Code"] = code.replace('[#nl#]', '\n').replace('\t', '  ')
             if method:
                 url_dict["Extra"] = "Input type : " + input_type + " --- " + "Method : " + method + " --- " + "Pointing to : " + pointing_to
             issue["URLs"] = [url_dict]
@@ -320,6 +323,8 @@ class ArachniPlugin(ExternalProcessPlugin):
             issue["Description"] = description
         if remediation:
             issue["Solution"] = remediation
+
+
 
         return issue
 
@@ -341,7 +346,7 @@ class ArachniPlugin(ExternalProcessPlugin):
             # Check issues
             issues_line = r"\s+\*\s(.*?)\s\(CWE\sID\s\:\s(\d+)\s-\s(.*?)\)\sin\s(.*?)\sinput\s(.*?)\using" \
                           r"\s(.*?)\sat\s(.*?)\spointing\sto\s(.*?)\swith\s(.*?)\sseverity\sand\sinjected\scode\s(.*?)\." \
-                          r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s(.*?)$"
+                          r"\sDescription\sfor\sthe\sissue\s\:\s(.*?)\sand\sa\sremediation\s\:\s(.*?)\sand\scode\s\:\s(.*?)$"
             patt = re.compile(issues_line, re.I|re.U|re.DOTALL)
 
             for m in patt.finditer(str(data)):
@@ -349,7 +354,7 @@ class ArachniPlugin(ExternalProcessPlugin):
                 issue = self._format_issue(name=m.group(1), cwe_id=m.group(2), cwe_url=m.group(3),
                                            input_type=m.group(4), input=m.group(5), method=m.group(6), url=m.group(7),
                                            pointing_to=m.group(8), severity=_minion_severity(m.group(9)),
-                                           injected=m.group(10), description=m.group(11), remediation=m.group(12))
+                                           injected=m.group(10), description=m.group(11), remediation=m.group(12), code=m.group(13))
                 self.report_issues([issue])
 
             # Check report
@@ -358,7 +363,7 @@ class ArachniPlugin(ExternalProcessPlugin):
 
             # Check end
             end_regex = r"-----\[END]-----"
-            end_match = re.match(end_regex, data)
+            end_match = re.match(r"-----\[END]-----", data)
 
             if report_match is not None:
                 report_type = _arachni_report_type(report_match.groups()[0])
