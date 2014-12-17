@@ -290,6 +290,10 @@ class ArachniPlugin(ExternalProcessPlugin):
             self.ARACHNI_ARGS.append("--reports")
             self.ARACHNI_ARGS.append(self.configuration['reports'])
 
+        # Check if timer is specified
+        if 'timeout' in self.configuration:
+            self.ARACHNI_ARGS.append("--timeout")
+            self.ARACHNI_ARGS.append(self.configuration['timeout'])
         self.reports = []
 
         self.spawn(self.ARACHNI_NAME, self.ARACHNI_ARGS)

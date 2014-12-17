@@ -5,8 +5,16 @@ require 'cgi'
 require 'pp'
 require 'optparse'
 
+def hms_to_seconds( time )
+    a = [1, 60, 3600] * 2
+    time.split( /[:\.]/ ).map { |t| t.to_i * a.pop }.inject(&:+)
+rescue
+    0
+end
+
 options = {}
 reports = []
+timeout = ''
 
 opt_parser = OptionParser.new do |opt|
     opt.banner = "Usage: arachni_runner.rb [options]"
@@ -446,10 +454,9 @@ opt_parser = OptionParser.new do |opt|
     end
 
     # TODO : Can suspend scan
-
     # Set timeout for the scan
-    opt.on('--timeout TIMEOUT', 'timeout in HOURS:MINUTES:SECONDS') do |timeout|
-        options['Timeout'] = timeout
+    opt.on('--timeout TIMEOUT', 'timeout in HOURS:MINUTES:SECONDS') do |time|
+        timeout = hms_to_seconds( time )
     end
 
     # URL to scan
@@ -541,6 +548,10 @@ rescue => inv_e
 end
 
 issue_digests = []
+
+# Initialize timeout
+timeout_time = Time.now + timeout.to_i
+
 while sleep 1
     issues = instance.call('service.progress', with: :issues, without: { issues: issue_digests })['issues']
 
@@ -564,6 +575,11 @@ while sleep 1
         end
 
         puts '-' * 50
+    end
+
+    # check timeout
+    if timeout && Time.now >= timeout_time
+        break
     end
 
     # we're done
