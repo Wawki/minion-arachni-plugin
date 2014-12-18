@@ -454,7 +454,13 @@ class ArachniPlugin(ExternalProcessPlugin):
 
             # Check if report was aborted because of timeout
             if self.timed_out:
-                self.report_finish("ABORTED")
+                failure = {
+                    "hostname": socket.gethostname(),
+                    "reason": self.stderr,
+                    "message": "Timeout",
+                    "exception": "The scan took more than " + self.configuration['timeout'] + " to execute"
+                }
+                self.report_finish("ABORTED", failure)
             else:
                 self.report_finish()
         else:
