@@ -579,6 +579,7 @@ while sleep 1
 
     # check timeout
     if timeout && Time.now >= timeout_time
+        $stderr.puts "Timeout - Scan took too long"
         break
     end
 

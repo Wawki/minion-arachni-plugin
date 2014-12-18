@@ -40,6 +40,9 @@ class ArachniPlugin(ExternalProcessPlugin):
     reported_issues = []
     in_issues = False
 
+    # Flag used in case the end of the scan was triggered by a timeout
+    timed_out = False
+
     def do_start(self):
         self.output = ""
         self.stderr = ""
@@ -432,6 +435,12 @@ class ArachniPlugin(ExternalProcessPlugin):
         inv_token_regex = r".*Token missing or invalid"
         if re.match(inv_token_regex, data):
             raise Exception("InvalidToken - An error occurred on the rpc server side")
+
+        # Check if timeout has been reached
+        timeout_regex = r".*Timeout\s-\sScan\stook\stoo\slong"
+        if re.match(timeout_regex, data):
+            self.timed_out = True
+
         #self.report_errors([str(data)])
         #self.report_finish("Encountered An Error; dying")
         #self.report_issues([{"Summary": data}])
@@ -442,7 +451,12 @@ class ArachniPlugin(ExternalProcessPlugin):
         elif status == 0:
             self._parse_output(self.output)
             self._save_artifacts()
-            self.report_finish()
+
+            # Check if report was aborted because of timeout
+            if self.timed_out:
+                self.report_finish("ABORTED")
+            else:
+                self.report_finish()
         else:
             self._save_artifacts()
             failure = {
