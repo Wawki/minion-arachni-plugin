@@ -570,7 +570,13 @@ while sleep 1
             print "severity and injected code #{issue['vector']['seed'] or '-'}. "
             print "Description for the issue : #{(issue['description'] or '-').gsub("\n"," ")} "
             print "and a remediation : #{(issue['remedy_guidance'] or '-').gsub("\n"," ")} "
-            print "and code : #{issue['vector']['html'].gsub("\n", "[#nl#]") or '-'}"
+
+            # Check if an incriminated code exists
+            htmlCode = "-"
+            if issue['vector']['html']
+                htmlCode = (issue['vector']['html']).gsub("\n", "[#nl#]")
+            end
+            print "and code : #{htmlCode}"
             print "\n"
         end
 
