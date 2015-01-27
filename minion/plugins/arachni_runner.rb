@@ -573,8 +573,8 @@ while sleep 1
 
             # Check if an incriminated code exists
             htmlCode = "-"
-            if issue['vector']['html']
-                htmlCode = (issue['vector']['html']).gsub("\n", "[#nl#]")
+            if issue['vector']['source']
+                htmlCode = (issue['vector']['source']).gsub("\n", "[#nl#]")
             end
             print "and code : #{htmlCode}"
             print "\n"
